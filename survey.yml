@@ -1,6 +1,6 @@
 ---
 - name: Test Survey Inputs Runbook
-  hosts: localhost
+  hosts: all
   tasks:
     - name: Display the Survey Variables
       debug:
