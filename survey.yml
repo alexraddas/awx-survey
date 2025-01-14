@@ -4,4 +4,4 @@
   tasks:
     - name: Display the Survey Variables
       debug:
-        msg: "{{username}}"
+        msg: "{{username}} {{job_id}}"
