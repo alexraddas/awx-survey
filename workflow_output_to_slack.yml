@@ -35,6 +35,7 @@
         headers: "{{ headers }}"
         return_content: true
         status_code: 200
+      when: item.job is not none
       loop: "{{ workflow_nodes_response.json.results }}"
       loop_control:
         label: "{{ item.job }}"
@@ -44,13 +45,14 @@
       ansible.builtin.set_fact:
         job_output: >-
           {%- set events = [] -%}
-          {%- for job_events_response in job_events_responses.results -%}
+          {%- for job_events_response in job_events_responses.results if job_events_response.json is defined -%}
             {%- for event in job_events_response.json.results -%}
               {%- if event.event_level | int <= 1 and event.event != 'verbose' -%}
-                {%- set _ = events.append(event.stdout | regex_replace('\\x1b\\[[0-9;]*[a-zA-Z]', '') | regex_replace('\\r\\n', '\n')) -%}
-              {%- endif -%}
-              {%- if 'res' in event.event_data.keys() and 'msg' in event.event_data.res.keys() -%}
-                {%- set _ = events.append(event.event_data.host ~ ': ' ~ event.event_data.res.msg ~ '\n') -%}
+                {%- set stdout_cleaned = event.stdout | regex_replace('\\x1b\\[[0-9;]*[a-zA-Z]', '') | regex_replace('\\r\\n', '\n') -%}
+                {%- set _ = events.append(stdout_cleaned) -%}
+                {%- if 'res' in event.event_data.keys() and 'msg' in event.event_data.res.keys() -%}
+                  {%- set _ = events.append(event.event_data.host ~ ': ' ~ event.event_data.res.msg ~ '\n') -%}
+                {%- endif -%}
               {%- endif -%}
             {%- endfor -%}
           {%- endfor -%}
