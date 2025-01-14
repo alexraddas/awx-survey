@@ -58,7 +58,6 @@
 
     - name: Send notification message via Slack
       vars:
-        job_status: "{{ workflow_job_response.json.status }}"
         slack_message: "{{ job_output }}"
         success_message: |
           [
