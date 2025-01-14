@@ -12,7 +12,7 @@
   tasks:
     - name: Get workflow job
       ansible.builtin.uri:
-        url: "{{ awx_api_url }}/api/v2/workflow_jobs/{{ job_id }}/"
+        url: "{{ awx_api_url }}/api/v2/workflow_jobs/{{ job_id | string }}/"
         method: GET
         headers: "{{ headers }}"
         return_content: true
