@@ -4,7 +4,7 @@
   gather_facts: false
   tasks:
     - name: Launch a Workflow with extra_vars without waiting
-      workflow_launch:
+      awx.awx.workflow_launch:
         workflow_template: "{{ workflow_name }}"
         extra_vars: "{{ workflow_extra_vars }}"
         limit: "{{ host_limit }}"
