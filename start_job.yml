@@ -7,5 +7,3 @@
       awx.awx.job_launch:
         job_template: "{{ job_name }}"
         extra_vars: "{{ job_extra_vars }}"
-        limit: "{{ host_limit }}"
-        job_type: run
