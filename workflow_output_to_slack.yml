@@ -97,6 +97,3 @@
           Authorization: "Bearer {{ slack_token }}"
         status_code: 200
       register: response
-    - name: Print response content
-      ansible.builtin.debug:
-        msg: "{{ response }}"
