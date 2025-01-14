@@ -3,6 +3,9 @@
   hosts: localhost
   gather_facts: false
   vars:
+    awx_api_url: "{{ lookup('env', 'CONTROLLER_HOST') }}"
+    oauth2_token: "{{ lookup('env', 'CONTROLLER_OAUTH_TOKEN') }}"
+    slack_token: "{{ lookup('env', 'SLACK_BOT_TOKEN') }}"
     headers:
       Authorization: "Bearer {{ oauth2_token }}"
 
