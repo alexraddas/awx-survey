@@ -1,0 +1,95 @@
+---
+- name: Get Workflow Output to Slack
+  hosts: localhost
+  gather_facts: false
+  vars:
+    headers:
+      Authorization: "Bearer {{ oauth2_token }}"
+
+  tasks:
+    - name: Get workflow job
+      ansible.builtin.uri:
+        url: "{{ awx_api_url }}/api/v2/workflow_jobs/{{ job_id }}/"
+        method: GET
+        headers: "{{ headers }}"
+        return_content: true
+        status_code: 200
+      register: workflow_job_response
+
+    - name: Get workflow nodes
+      ansible.builtin.uri:
+        url: "{{ awx_api_url }}{{ workflow_job_response.json.related.workflow_nodes }}"
+        method: GET
+        headers: "{{ headers }}"
+        return_content: true
+        status_code: 200
+      register: workflow_nodes_response
+
+    - name: Get job events for each workflow node
+      ansible.builtin.uri:
+        url: "{{ awx_api_url }}/api/v2/jobs/{{ item.job }}/job_events/"
+        method: GET
+        headers: "{{ headers }}"
+        return_content: true
+        status_code: 200
+      loop: "{{ workflow_nodes_response.json.results }}"
+      loop_control:
+        label: "{{ item.job }}"
+      register: job_events_responses
+
+    - name: Set job events as a fact
+      ansible.builtin.set_fact:
+        job_output: >-
+          {%- set events = [] -%}
+          {%- for job_events_response in job_events_responses.results -%}
+            {%- for event in job_events_response.json.results -%}
+              {%- if event.event_level | int <= 1 and event.event != 'verbose' -%}
+                {%- set _ = events.append(event.stdout | regex_replace('\\x1b\\[[0-9;]*[a-zA-Z]', '') | regex_replace('\\r\\n', '\n')) -%}
+              {%- endif -%}
+              {%- if 'res' in event.event_data.keys() and 'msg' in event.event_data.res.keys() -%}
+                {%- set _ = events.append(event.event_data.host ~ ': ' ~ event.event_data.res.msg ~ '\n') -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}
+          {{ events | join('\n') }}
+
+    - name: Send notification message via Slack
+      vars:
+        job_status: "{{ workflow_job_response.json.status }}"
+        slack_message: "{{ job_output }}"
+        success_message: |
+          [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": ":successful: Job Completed Successfully\n\n*Job Output:*```{{ job_output }}```"
+              }
+            }
+          ]
+        failure_message: |
+          [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": ":failed: Job Failed\n\n*Job Output:*```{{ job_output }}```"
+              }
+            }
+          ]
+
+      ansible.builtin.uri:
+        url: https://slack.com/api/chat.postMessage
+        method: POST
+        body_format: json
+        body:
+          channel: "{{ channel_id }}"
+          user: "{{ slack_user if slack_user is defined else none }}"
+          text: "{{ slack_message }}"
+          blocks: "{{ success_message if job_status == 'successful' else failure_message }}"
+          thread_ts: "{{ slack_thread if slack_thread is defined else none }}"
+        headers:
+          Content-Type: "application/json; charset=utf-8"
+          Authorization: "Bearer {{ slack_token }}"
+        status_code: 200
+      register: response
