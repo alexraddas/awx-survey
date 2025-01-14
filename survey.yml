@@ -4,4 +4,4 @@
   tasks:
     - name: Display the Survey Variables
       debug:
-        msg: "{{username}} {{awx_workflow_job_id}}"
+        msg: "{{username}}"
